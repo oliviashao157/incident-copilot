@@ -1,0 +1,30 @@
+Generate a realistic incident report for a software system.
+
+Category: {category}
+
+Requirements:
+- Create a realistic incident title (1 line, specific and actionable)
+- Create a detailed description (2-4 paragraphs) including:
+  - What happened
+  - When it started
+  - Impact on users/systems
+  - Initial observations and error messages
+- Create a resolution description (1-2 paragraphs) with:
+  - Root cause analysis
+  - Steps taken to resolve
+  - Preventive measures implemented
+
+Output as JSON with these exact fields:
+{{
+    "title": "Brief, specific incident title",
+    "description": "Detailed multi-paragraph description",
+    "resolution": "Root cause and resolution steps",
+    "severity": "critical|high|medium|low"
+}}
+
+Guidelines:
+- Be specific with service names, metrics, and technical details
+- Include realistic timestamps and duration estimates
+- Reference specific technologies (Kubernetes, PostgreSQL, Redis, etc.)
+- Make it sound like a real incident from a production system
+- Include realistic metric values (latency in ms, error rates, affected users)

@@ -1,0 +1,186 @@
+{
+  "version": "1.0",
+  "description": "Golden test cases for RAG evaluation",
+  "cases": [
+    {
+      "id": "eval-001",
+      "title": "High latency on checkout API",
+      "description": "We're seeing P99 latency of 5000ms on the /api/checkout endpoint. Normal baseline is 200ms. Started around 14:00 UTC. Approximately 30% of checkout requests are timing out.",
+      "expected_category": "latency",
+      "expected_severity": "high",
+      "expected_keywords": ["database", "query", "cache", "connection pool"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-002",
+      "title": "Payment service returning 503 errors",
+      "description": "CRITICAL: Payment service is completely down. All requests returning 503. Started at 09:15 UTC. Revenue impact confirmed. All 12 pods showing unhealthy status in Kubernetes.",
+      "expected_category": "outage",
+      "expected_severity": "critical",
+      "expected_keywords": ["restart", "rollback", "health check", "pods"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-003",
+      "title": "Canary deployment showing elevated errors",
+      "description": "New version 2.5.0 canary at 10% traffic showing 5% error rate vs 0.1% baseline. Errors are NullPointerException in UserService.getProfile().",
+      "expected_category": "deployment",
+      "expected_severity": "medium",
+      "expected_keywords": ["rollback", "canary", "code", "fix"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-004",
+      "title": "Database connection pool exhausted",
+      "description": "PostgreSQL connection pool at 100% utilization. New connections being rejected. Query queue backing up. Affects user-service and order-service.",
+      "expected_category": "capacity",
+      "expected_severity": "high",
+      "expected_keywords": ["pool", "connections", "scale", "queries"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-005",
+      "title": "SSL certificate expired on API gateway",
+      "description": "SSL certificate for api.example.com expired 2 hours ago. All HTTPS traffic failing. Certificate monitoring alert was missed.",
+      "expected_category": "security",
+      "expected_severity": "critical",
+      "expected_keywords": ["certificate", "renew", "monitoring", "https"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-006",
+      "title": "Third-party payment provider returning errors",
+      "description": "Stripe API returning 500 errors for 40% of requests. Started 30 minutes ago. Fallback to secondary provider not configured.",
+      "expected_category": "dependency",
+      "expected_severity": "high",
+      "expected_keywords": ["fallback", "circuit breaker", "retry", "provider"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-007",
+      "title": "DNS resolution failures in us-east-1",
+      "description": "Intermittent DNS resolution failures for internal services in us-east-1. Affects 20% of cross-service calls. Route53 showing no issues.",
+      "expected_category": "network",
+      "expected_severity": "medium",
+      "expected_keywords": ["dns", "resolver", "cache", "timeout"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-008",
+      "title": "Configuration change broke authentication",
+      "description": "Recent config change to auth-service disabled OAuth validation. Users unable to login. Change was deployed at 16:00 UTC without review.",
+      "expected_category": "config",
+      "expected_severity": "critical",
+      "expected_keywords": ["revert", "config", "validation", "review"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-009",
+      "title": "Data inconsistency in user profiles",
+      "description": "Reports of user profile data showing incorrect values. Suspected issue with recent database migration. Affects approximately 5000 user records.",
+      "expected_category": "data",
+      "expected_severity": "high",
+      "expected_keywords": ["migration", "rollback", "backup", "validate"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-010",
+      "title": "Memory leak causing OOM kills",
+      "description": "Order processing pods being OOM killed every 4 hours. Memory usage grows linearly until hitting 4GB limit. Suspected leak in order validation logic.",
+      "expected_category": "capacity",
+      "expected_severity": "medium",
+      "expected_keywords": ["memory", "leak", "profiling", "heap"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-011",
+      "title": "Slow API responses during peak hours",
+      "description": "API response times degrade from 100ms to 2000ms during peak traffic (12-14 UTC). Auto-scaling not triggering fast enough.",
+      "expected_category": "latency",
+      "expected_severity": "medium",
+      "expected_keywords": ["scaling", "traffic", "capacity", "hpa"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-012",
+      "title": "Failed blue-green deployment",
+      "description": "Blue-green deployment of inventory-service failed. Green environment showing database connection errors. Blue still serving traffic.",
+      "expected_category": "deployment",
+      "expected_severity": "medium",
+      "expected_keywords": ["database", "connection", "environment", "config"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-013",
+      "title": "Redis cluster node failure",
+      "description": "One of three Redis cluster nodes failed. Cluster in degraded state. Cache hit rate dropped from 95% to 60%. Increased load on database.",
+      "expected_category": "outage",
+      "expected_severity": "high",
+      "expected_keywords": ["redis", "cluster", "failover", "cache"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-014",
+      "title": "API rate limiting triggering incorrectly",
+      "description": "Legitimate API clients being rate limited. Rate limit counter appears to be shared across all clients instead of per-client.",
+      "expected_category": "config",
+      "expected_severity": "medium",
+      "expected_keywords": ["rate limit", "configuration", "client", "key"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-015",
+      "title": "Unauthorized access attempt detected",
+      "description": "Security monitoring detected 10,000 failed login attempts from IP range 192.168.x.x in the last hour. Possible brute force attack.",
+      "expected_category": "security",
+      "expected_severity": "high",
+      "expected_keywords": ["block", "ip", "rate limit", "monitoring"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-016",
+      "title": "Kafka consumer lag increasing",
+      "description": "Order processing consumer lag growing at 1000 messages/minute. Consumer group appears stuck. Messages not being processed.",
+      "expected_category": "data",
+      "expected_severity": "high",
+      "expected_keywords": ["kafka", "consumer", "lag", "rebalance"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-017",
+      "title": "Load balancer health checks failing",
+      "description": "ALB marking 4 of 8 targets as unhealthy. Health check timeout set too low for startup time of new instances.",
+      "expected_category": "network",
+      "expected_severity": "medium",
+      "expected_keywords": ["health check", "timeout", "alb", "targets"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-018",
+      "title": "Terraform apply failed mid-deployment",
+      "description": "Infrastructure change via Terraform failed partway through. Some resources created, others not. State file may be inconsistent.",
+      "expected_category": "deployment",
+      "expected_severity": "high",
+      "expected_keywords": ["terraform", "state", "rollback", "plan"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-019",
+      "title": "Search service returning stale results",
+      "description": "Elasticsearch index not updating. New products added in last 6 hours not appearing in search results. Index lag of 25,000 documents.",
+      "expected_category": "data",
+      "expected_severity": "medium",
+      "expected_keywords": ["elasticsearch", "index", "reindex", "sync"],
+      "should_cite_similar": true
+    },
+    {
+      "id": "eval-020",
+      "title": "Mobile app API calls timing out",
+      "description": "Mobile app users reporting slow loading. API calls from mobile clients timing out at 30s. Web clients unaffected. Possible issue with mobile API gateway.",
+      "expected_category": "latency",
+      "expected_severity": "high",
+      "expected_keywords": ["mobile", "gateway", "timeout", "routing"],
+      "should_cite_similar": true
+    }
+  ]
+}
