@@ -73,7 +73,6 @@ class IncidentClassifier:
                         max_iter=1000,
                         class_weight="balanced",
                         random_state=random_state,
-                        multi_class="multinomial",
                     ),
                 ),
             ]
