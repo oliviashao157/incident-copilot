@@ -187,10 +187,20 @@ async def search_incidents(request: SearchRequest):
         raise HTTPException(status_code=503, detail="Retriever not initialized")
 
     try:
+        # Parse optional date filters
+        from datetime import datetime
+
+        after_dt = datetime.fromisoformat(request.after) if request.after else None
+        before_dt = datetime.fromisoformat(request.before) if request.before else None
+
         results = retriever.retrieve(
             query=request.query,
             k=request.top_k,
             threshold=request.threshold,
+            categories=request.categories,
+            severities=request.severities,
+            after=after_dt,
+            before=before_dt,
         )
 
         return SearchResponse(

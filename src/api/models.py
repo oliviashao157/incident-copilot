@@ -68,6 +68,18 @@ class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=5000)
     top_k: int = Field(default=10, ge=1, le=50)
     threshold: float = Field(default=0.0, ge=0.0, le=1.0)
+    categories: Optional[list[Category]] = Field(
+        default=None, description="Filter by incident categories"
+    )
+    severities: Optional[list[Severity]] = Field(
+        default=None, description="Filter by severity levels"
+    )
+    after: Optional[str] = Field(
+        default=None, description="Only incidents after this ISO date (YYYY-MM-DD)"
+    )
+    before: Optional[str] = Field(
+        default=None, description="Only incidents before this ISO date (YYYY-MM-DD)"
+    )
 
 
 class SearchResponse(BaseModel):

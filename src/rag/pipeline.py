@@ -44,6 +44,7 @@ class RAGPipeline:
         # Lazy initialization
         self._retriever_initialized = retriever is not None
         self._classifier_initialized = classifier is not None
+        self._graph = None
 
     def _ensure_retriever(self) -> None:
         """Ensure retriever is initialized."""
@@ -60,6 +61,14 @@ class RAGPipeline:
             else:
                 self.classifier = None
             self._classifier_initialized = True
+
+    def _ensure_graph(self):
+        """Lazily compile the LangGraph pipeline."""
+        if self._graph is None:
+            from src.rag.graph import build_analysis_graph
+
+            self._graph = build_analysis_graph(self)
+        return self._graph
 
     def _load_prompt_template(self, name: str) -> str:
         """Load a prompt template from the prompts directory."""
@@ -125,7 +134,7 @@ Base your analysis on the similar incidents provided. Include citations to suppo
         top_k: int = 5,
         similarity_threshold: float = 0.3,
     ) -> AnalysisResult:
-        """Analyze an incident using the RAG pipeline.
+        """Analyze an incident using the LangGraph RAG pipeline.
 
         Args:
             input_data: Incident input (title and description)
@@ -138,87 +147,28 @@ Base your analysis on the similar incidents provided. Include citations to suppo
         self._ensure_retriever()
         self._ensure_classifier()
 
-        # Create temporary incident for classification
-        temp_incident = Incident(
-            id="temp",
-            title=input_data.title,
-            description=input_data.description,
-            source=IncidentSource.MANUAL,
-        )
+        graph = self._ensure_graph()
 
-        # Step 1: Classify the incident
-        if self.classifier:
-            category, confidence = self.classifier.predict(temp_incident)
-        else:
-            # Fallback to keyword-based classification
-            from src.classifier.categories import infer_category_from_text
+        initial_state = {
+            "input_data": input_data,
+            "top_k": top_k,
+            "similarity_threshold": similarity_threshold,
+            "predicted_category": None,
+            "predicted_severity": None,
+            "category_confidence": 0.0,
+            "query_text": "",
+            "similar_incidents": [],
+            "retrieval_attempt": 0,
+            "llm_response": None,
+            "generation_attempt": 0,
+            "generation_error": None,
+            "validation_passed": False,
+            "result": None,
+        }
 
-            category, confidence = infer_category_from_text(
-                f"{input_data.title} {input_data.description}"
-            )
+        final_state = graph.invoke(initial_state)
 
-        # Estimate severity based on keywords
-        severity = self._estimate_severity(input_data.title, input_data.description)
-
-        # Step 2: Retrieve similar incidents
-        query = f"{input_data.title} {input_data.description}"
-        similar_incidents = self.retriever.retrieve(
-            query=query,
-            k=top_k,
-            threshold=similarity_threshold,
-        )
-
-        # Step 3: Generate LLM analysis
-        prompt_template = self._load_prompt_template("rag_analysis")
-        prompt = prompt_template.format(
-            title=input_data.title,
-            description=input_data.description,
-            category=category.value,
-            severity=severity.value,
-            similar_incidents=self._format_similar_incidents(similar_incidents),
-        )
-
-        try:
-            llm_response = self.llm_client.generate_json(
-                prompt=prompt,
-                system_prompt="You are an expert SRE incident analyst. Respond only with valid JSON.",
-            )
-        except Exception as e:
-            # Fallback response if LLM fails
-            llm_response = {
-                "root_cause_hypothesis": f"Unable to generate analysis: {e}",
-                "recommended_actions": ["Investigate manually", "Check logs", "Review recent changes"],
-                "estimated_impact": "Unknown - requires manual assessment",
-                "analysis_summary": "LLM analysis unavailable",
-                "citations": [],
-            }
-
-        # Parse citations
-        citations = []
-        for cit in llm_response.get("citations", []):
-            if isinstance(cit, dict):
-                citations.append(
-                    Citation(
-                        incident_id=cit.get("incident_id", "unknown"),
-                        text=cit.get("text", ""),
-                        relevance=cit.get("relevance", ""),
-                    )
-                )
-
-        return AnalysisResult(
-            query_title=input_data.title,
-            query_description=input_data.description,
-            predicted_category=category,
-            predicted_severity=severity,
-            category_confidence=confidence,
-            similar_incidents=similar_incidents,
-            root_cause_hypothesis=llm_response.get("root_cause_hypothesis", ""),
-            recommended_actions=llm_response.get("recommended_actions", []),
-            estimated_impact=llm_response.get("estimated_impact", ""),
-            citations=citations,
-            analysis_summary=llm_response.get("analysis_summary", ""),
-            raw_llm_response=json.dumps(llm_response),
-        )
+        return final_state["result"]
 
     def _estimate_severity(self, title: str, description: str) -> Severity:
         """Estimate severity based on keywords."""

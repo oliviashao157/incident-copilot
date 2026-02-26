@@ -1,6 +1,7 @@
 """Tests for embedding and retrieval."""
 
 import tempfile
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -8,7 +9,7 @@ import pytest
 
 from src.embedding.embedder import TextEmbedder
 from src.embedding.index import FAISSIndex
-from src.schema import Incident, IncidentSource
+from src.schema import Category, Incident, IncidentSource, Severity
 
 
 class TestTextEmbedder:
@@ -180,3 +181,124 @@ class TestFAISSIndex:
 
         with pytest.raises(ValueError):
             index.build([])
+
+
+class TestFilteredRetrieval:
+    """Tests for IncidentRetriever with metadata filtering."""
+
+    @pytest.fixture
+    def categorized_incidents(self):
+        """Incidents with varied categories and severities."""
+        base_time = datetime(2024, 6, 1, 12, 0, 0)
+        return [
+            Incident(
+                id="inc-lat-1",
+                title="High latency on payment API",
+                description="Response times increased to 5000ms on payment endpoint",
+                category=Category.LATENCY,
+                severity=Severity.HIGH,
+                source=IncidentSource.SYNTHETIC,
+                created_at=base_time,
+            ),
+            Incident(
+                id="inc-out-1",
+                title="Complete service outage",
+                description="Payment service completely down, all requests failing",
+                category=Category.OUTAGE,
+                severity=Severity.CRITICAL,
+                source=IncidentSource.SYNTHETIC,
+                created_at=base_time + timedelta(days=1),
+            ),
+            Incident(
+                id="inc-lat-2",
+                title="Database query latency spike",
+                description="Database queries taking over 3000ms, causing API slowdown",
+                category=Category.LATENCY,
+                severity=Severity.MEDIUM,
+                source=IncidentSource.SYNTHETIC,
+                created_at=base_time + timedelta(days=2),
+            ),
+            Incident(
+                id="inc-sec-1",
+                title="Unauthorized access attempt detected",
+                description="Multiple failed login attempts from suspicious IP addresses",
+                category=Category.SECURITY,
+                severity=Severity.HIGH,
+                source=IncidentSource.SYNTHETIC,
+                created_at=base_time + timedelta(days=3),
+            ),
+        ]
+
+    @pytest.fixture
+    def retriever_with_filters(self, categorized_incidents, tmp_path):
+        """Build a retriever with categorized incidents."""
+        from src.data.incident_store import IncidentStore
+        from src.rag.retriever import IncidentRetriever
+
+        # Write incidents to JSONL
+        jsonl_path = tmp_path / "incidents.jsonl"
+        with open(jsonl_path, "w") as f:
+            for inc in categorized_incidents:
+                f.write(inc.model_dump_json() + "\n")
+
+        # Build index
+        index = FAISSIndex()
+        index.build(categorized_incidents)
+
+        # Build store
+        store = IncidentStore(data_dir=tmp_path)
+        store.load_all()
+
+        return IncidentRetriever(index=index, store=store)
+
+    def test_retrieve_without_filters(self, retriever_with_filters):
+        """No filters returns results from any category."""
+        results = retriever_with_filters.retrieve("latency spike", k=4, threshold=0.0)
+        assert len(results) > 0
+
+    def test_retrieve_with_category_filter(self, retriever_with_filters):
+        """Category filter restricts results."""
+        results = retriever_with_filters.retrieve(
+            "service issue",
+            k=4,
+            threshold=0.0,
+            categories=[Category.LATENCY],
+        )
+        for r in results:
+            assert r.incident.category == Category.LATENCY
+
+    def test_retrieve_with_severity_filter(self, retriever_with_filters):
+        """Severity filter restricts results."""
+        results = retriever_with_filters.retrieve(
+            "incident",
+            k=4,
+            threshold=0.0,
+            severities=[Severity.HIGH],
+        )
+        for r in results:
+            assert r.incident.severity == Severity.HIGH
+
+    def test_retrieve_with_date_filter(self, retriever_with_filters):
+        """Date filter restricts results."""
+        after = datetime(2024, 6, 2, 0, 0, 0)
+        results = retriever_with_filters.retrieve(
+            "incident",
+            k=4,
+            threshold=0.0,
+            after=after,
+        )
+        for r in results:
+            assert r.incident.created_at >= after
+
+    def test_retrieve_combined_filters(self, retriever_with_filters):
+        """Combined filters use AND logic."""
+        results = retriever_with_filters.retrieve(
+            "latency",
+            k=4,
+            threshold=0.0,
+            categories=[Category.LATENCY],
+            severities=[Severity.HIGH],
+        )
+        for r in results:
+            assert r.incident.category == Category.LATENCY
+            assert r.incident.severity == Severity.HIGH
